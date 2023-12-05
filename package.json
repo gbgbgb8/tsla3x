@@ -1,0 +1,15 @@
+{
+    "name": "anonymous-chat-app",
+    "version": "1.0.0",
+    "description": "A simple anonymous chat app with WebRTC and socket.io",
+    "main": "index.js",
+    "scripts": {
+      "start": "node index.js"
+    },
+    "dependencies": {
+      "socket.io": "^4.0.0"
+    },
+    "author": "",
+    "license": "ISC"
+  }
+  
