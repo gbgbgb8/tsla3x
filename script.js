@@ -3,12 +3,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatInput = document.getElementById('chat-input');
     const sendButton = document.getElementById('send-btn');
 
-    // Initialize peer connection
     let peerConnection;
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-    const socket = io(); // Initialize socket.io client
+    const socket = io('https://tsla3x.vercel.app'); // Connect to socket.io server
 
-    // Function to handle the incoming message
     function handleMessage(data) {
         const message = document.createElement('div');
         message.classList.add('message');
@@ -17,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Function to send message
     function sendMessage() {
         const message = chatInput.value.trim();
         if (message && peerConnection) {
@@ -27,27 +24,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Set up WebRTC connection
     function setupWebRTC() {
         peerConnection = new RTCPeerConnection(configuration);
 
-        // Handle incoming data channel messages
-        peerConnection.ondatachannel = event => {
-            const channel = event.channel;
-            channel.onmessage = e => handleMessage(`Stranger: ${e.data}`);
-        };
-
-        // Create a data channel
         const dataChannel = peerConnection.createDataChannel("chat");
+        dataChannel.onmessage = e => handleMessage(`Stranger: ${e.data}`);
 
-        // Setup the ICE candidates
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
                 socket.emit('ice-candidate', event.candidate);
             }
         };
 
-        // Once the connection is established
         peerConnection.onconnectionstatechange = event => {
             if (peerConnection.connectionState === 'connected') {
                 console.log("Connected to the peer.");
@@ -57,21 +45,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return dataChannel;
     }
 
-    // Set up the initial WebRTC offer
     async function createOffer() {
         const dataChannel = setupWebRTC();
+        dataChannel.onopen = () => console.log("Data channel is open");
+
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         socket.emit('offer', offer);
     }
 
-    // Handle the WebRTC answer
     socket.on('answer', async answer => {
         const remoteDesc = new RTCSessionDescription(answer);
         await peerConnection.setRemoteDescription(remoteDesc);
     });
 
-    // Handle ICE candidates from the peer
     socket.on('ice-candidate', async candidate => {
         try {
             await peerConnection.addIceCandidate(candidate);
@@ -87,6 +74,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Start the process
     createOffer();
 });

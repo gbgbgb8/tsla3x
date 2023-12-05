@@ -1,22 +1,26 @@
-const WebSocket = require('ws');
-const express = require('express');
-const http = require('http');
+const { Server } = require('socket.io');
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+module.exports = (req, res) => {
+    if (res.socket.server.io) {
+        console.log('Socket.io already running');
+    } else {
+        console.log('Initializing socket.io');
+        const io = new Server(res.socket.server);
+        res.socket.server.io = io;
 
-wss.on('connection', function connection(ws) {
-    ws.on('message', function incoming(message) {
-        wss.clients.forEach(function each(client) {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
+        io.on('connection', socket => {
+            socket.on('offer', offer => {
+                socket.broadcast.emit('offer', offer);
+            });
+
+            socket.on('answer', answer => {
+                socket.broadcast.emit('answer', answer);
+            });
+
+            socket.on('ice-candidate', candidate => {
+                socket.broadcast.emit('ice-candidate', candidate);
+            });
         });
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-});
+    }
+    res.end();
+};
